@@ -1,0 +1,94 @@
+#!/bin/sh /etc/rc.common
+
+START=90
+STOP=10
+
+USE_PROCD=1
+
+NAME='rustdesk'
+hbbs_opt=" "
+hbbr_opt=" "
+_log() {
+        local level="$1" ; shift
+        local msg="$@"
+        logger -p "daemon.$level" -t "$NAME" "$msg"
+
+        echo "[$level] $msg" >&2
+}
+
+_info() {
+        _log "info" $@
+}
+
+_err() {
+        _log "err" $@
+}
+
+rustdesk_scetion_validate() {
+        uci_validate_section "$NAME" "rustdesk"  "$1"\
+                'enabled:bool:0' \
+        'enabled_relay:bool:0' \
+        'relay_port:port' \
+        'server_port:port' \
+        'server_serial:uinteger:0'
+}
+
+append_options() {
+    local o v
+        for o in "$@" ; do
+        echo "$o"
+                v="$(eval echo "\$$o")"
+                if [ -n "$v" ] ; then
+            # echo "v =  $v"
+            # echo "o =  $o"
+            [[ $o == server_* ]] && hbbs_opt="$hbbs_opt --${o##*_} $v "
+            [[ $o == relay_* ]] && hbbr_opt="$hbbr_opt --${o##*_} $v "
+
+                        # echo "${o} = $v"
+                fi
+        done
+    echo $hbbs_opt
+    echo $hbbr_opt
+}
+create_config_file() {
+    append_options "relay_port" "server_port" "server_serial"
+}
+start_instance() {
+    local section="$1"
+    if ! rustdesk_scetion_validate  "$section" ; then
+        _err "Config validate failed."
+        return 1
+    fi
+
+    if [ "x$enabled" != "x1" ] ; then
+                _info "Instance \"$section\" disabled."
+                return 1
+        fi
+
+    create_config_file
+    procd_open_instance "$NAME.server"
+    procd_set_param command /usr/bin/hbbs
+    procd_append_param command  $hbbs_opt -k _
+    procd_set_param respawn
+    procd_close_instance
+
+    procd_open_instance "$NAME.relay"
+    procd_set_param command /usr/bin/hbbr
+    procd_append_param command  $hbbr_opt -k _
+    procd_set_param respawn
+    procd_close_instance
+
+
+    echo "user procd quit set"
+}
+service_triggers() {
+        procd_add_reload_trigger "$NAME"
+}
+start_service() {
+        config_load "$NAME"
+        config_foreach start_instance "rustdesk"
+}
+reload_service() {
+        stop
+        start
+}

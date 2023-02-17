@@ -1,0 +1,5 @@
+config rustdesk
+        option server_port '21116'
+        option enabled '1'
+        option server_serial '0'
+        option relay_port '21117'
