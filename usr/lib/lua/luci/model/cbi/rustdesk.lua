@@ -1,21 +1,5 @@
---[[
-LuCI - Lua Configuration Interface
 
-Copyright 2010 Jo-Philipp Wich <xm@subsignal.org>
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-	http://www.apache.org/licenses/LICENSE-2.0
-]]--
-
--- local s=require"nixio.fs"
--- local e=luci.model.uci.cursor()
 local i="rustdesk"
--- local a,t,e
--- local n={}
-
 
 m = Map(i, translate("RustDesk Server Setting"), translate("Configure RustDesk server program."))
 m:section(SimpleSection).template="rustdesk/rustdesk_status"
@@ -90,7 +74,6 @@ end
 
 function m.on_after_commit(self)
 	-- os.execute("uci set firewall.openvpn.dest_port=$(uci get openvpn.myvpn.port) && uci commit firewall &&  /etc/init.d/firewall restart")
-	-- os.execute("/etc/init.d/rustdesk-server restart")
 	os.execute("/etc/init.d/rustdesk restart")
 end
 
